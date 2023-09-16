@@ -61,13 +61,14 @@ function newFamilyEnrollment(itemResponses)
 
   var memberRowObject = {
     'Head': [serialDigit,familyID,'ACTIVE','Head of Family',record_array.Head_Name,'',formatDate(record_array.Head_DOB),'',record_array.Present_Address,record_array.Contact_Number, record_array.Head_Aadhar,'',record_array.Head_Qualification,record_array.Head_Occupation],
-    'Spouse': ['','','','Spouse',record_array.Spouse_Name,'',formatDate(record_array.Spouse_DOB),'','SAME','SAME',record_array.Spouse_Aadhar, '',record_array.Spouse_Qualification, record_array.Spouse_Occupation],
-    'Child 1': ['','','','Child No. 1',record_array.Child_1_Name,'',formatDate(record_array.Child_1_DOB),'','SAME','SAME',record_array.Child_1_Aadhar, '',''],
-    'Child 2': ['','','','Child No. 2',record_array.Child_2_Name,'',formatDate(record_array.Child_2_DOB),'','SAME','SAME',record_array.Child_2_Aadhar, '',''],
-    'Child 3': ['','','','Child No. 3',record_array.Child_3_Name,'',formatDate(record_array.Child_3_DOB),'','SAME','SAME',record_array.Child_3_Aadhar, '',''],
-    'Child 4': ['','','','Child No. 4',record_array.Child_4_Name,'',formatDate(record_array.Child_4_DOB),'','SAME','SAME',record_array.Child_4_Aadhar, '','']
+    'Spouse': ['','','','Spouse',record_array.Spouse_Name,'',formatDate(record_array.Spouse_DOB),'','SAME','SAME',record_array.Spouse_Aadhar, '',record_array.Spouse_Qualification, record_array.Spouse_Occupation]
   };
-  
+  for(var i=1;i<=record_array.Number_of_Children; i++)
+  {
+    var childId = 'Child_'+i;
+    memberRowObject[childId] = ['','','','Child No. '+i,record_array[childId+'_Name'],'',formatDate(record_array[childId+'_DOB']),'','SAME','SAME',record_array[childId+'_Aadhar'], '',''];
+  }
+
   appendFamilyMemberRows( memberRowObject);
 }
 
@@ -91,45 +92,38 @@ function getFamilyID( newserialDigit)
 function appendFamilyMemberRows( rowObj)
 {
   colorGreenHeadRow(sheet);
-  var studentSheetArr = [];
-  checkChildrenClass(rowObj, studentSheetArr);
   sheet.appendRow(rowObj['Head']);
   sheet.appendRow(rowObj['Spouse']);
   var studentsheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('studentUrl')).getSheetByName(scriptProperties.getProperty('studentSheet'));
+  var studentSheetArr = [];
 
   for(var i=0;i<record_array.Number_of_Children; i++)
   {
-    var index = 'Child '+(i+1);
+    var index = 'Child_'+(i+1);
     sheet.appendRow(rowObj[index]);
+    checkChildrenClass(rowObj, studentSheetArr, index);
     studentsheet.appendRow(studentSheetArr[i]);
   }
 }
 
-function checkChildrenClass(rowObj, studentSheetArr)
+function checkChildrenClass(rowObj, studentSheetArr, childindex)
 {
   var serno = 0;
   var rollnoString = familyID+'-0';
+  var childclass = childindex+'_Class';
+  var childname = childindex+'_Name';
+  var childjoinedon = childindex+'_joined_SNS_on';
   //ToDo: Insert link for roll nos
-  if(record_array.Child_1_Class != 'Not a SNS student' && record_array.Child_1_Class != 'Adult')
+  if(isSNSStudent(record_array[childindex+'_'+childclass]))
   {
-    rowObj['Child 1'].push('SNS Student');
-    studentSheetArr.push(['',record_array.Child_1_Name, '', rollnoString+(++serno), record_array.Child_1_Class, '', formatDate(record_array.Child_1_joined_SNS_on)]);
+    rowObj[childindex].push('SNS Student');
+    studentSheetArr.push(['',record_array[childname], '', rollnoString+(++serno), record_array[childclass], '', formatDate(record_array[childjoinedon])]);
   }
-  if(record_array.Child_2_Class != 'Not a SNS student' && record_array.Child_2_Class != 'Adult')
-  {
-    rowObj['Child 2'].push('SNS Student');
-    studentSheetArr.push(['',record_array.Child_2_Name, '', rollnoString+(++serno), record_array.Child_2_Class, '', formatDate(record_array.Child_2_joined_SNS_on)]);
-  }
-  if(record_array.Child_3_Class != 'Not a SNS student' && record_array.Child_3_Class != 'Adult')
-  {
-    rowObj['Child 3'].push('SNS Student');
-    studentSheetArr.push(['',record_array.Child_3_Name, '', rollnoString+(++serno), record_array.Child_3_Class, '', formatDate(record_array.Child_3_joined_SNS_on)]);
-  }
-  if(record_array.Child_4_Class != 'Not a SNS student' && record_array.Child_4_Class != 'Adult')
-  {
-    rowObj['Child 4'].push('SNS Student');
-    studentSheetArr.push(['',record_array.Child_4_Name, '', rollnoString+(++serno), record_array.Child_4_Class, '', formatDate(record_array.Child_4_joined_SNS_on)]);
-  }
+}
+
+function isSNSStudent(childclass)
+{
+  return (childclass != 'Not a SNS student' && childclass != 'Adult');
 }
 
 function appendNewYearRow( year)
