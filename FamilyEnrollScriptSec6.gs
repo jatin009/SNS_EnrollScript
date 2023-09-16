@@ -1,18 +1,18 @@
 /*
 *  Sectorwise Modifiables Script Properties:
 * - Form ID
-* - memberRowObject columns
+* - familyMemberRowObject columns
 * - 'SNS/02/' Center code in Family Id
 * - url of respective sector family sheet
 * - family sheet name
 */
 
-record_array = {};
+formDataArr = {};
 const scriptProperties = PropertiesService.getScriptProperties();
-var ss= SpreadsheetApp.openByUrl(scriptProperties.getProperty('url'));
-var sheet = ss.getSheetByName(scriptProperties.getProperty('sheetname'));
-var serialDigit = Number(scriptProperties.getProperty('serialno'));
-var familyID;
+var familySheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('familyUrl')).getSheetByName(scriptProperties.getProperty('familySheet'));
+var studentSheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('studentUrl')).getSheetByName(scriptProperties.getProperty('studentSheet'));
+var familySerial = Number(scriptProperties.getProperty('familySerial'));
+var familyID = '';
 
 function onFormSubmit(event) 
 {
@@ -42,7 +42,7 @@ function studentLeaving(itemResponses)
     var itemResponse = itemResponses[j];
     var key = itemResponse.getItem().getTitle();
     var underscoredKey = key.replace(/ /g, "_");
-    record_array[underscoredKey] = itemResponse.getResponse();
+    formDataArr[underscoredKey] = itemResponse.getResponse();
   }
 }
 
@@ -53,68 +53,75 @@ function newFamilyEnrollment(itemResponses)
     var itemResponse = itemResponses[j];
     var key = itemResponse.getItem().getTitle();
     var underscoredKey = key.replace(/ /g, "_");
-    record_array[underscoredKey] = itemResponse.getResponse();
+    formDataArr[underscoredKey] = itemResponse.getResponse();
   }
 
-  var newserialDigit = serialDigit + 1;
-  familyID = getFamilyID(newserialDigit);
+  familyID = getFamilyID(familySerial + 1);
 
-  var memberRowObject = {
-    'Head': [serialDigit,familyID,'ACTIVE','Head of Family',record_array.Head_Name,'',formatDate(record_array.Head_DOB),'',record_array.Present_Address,record_array.Contact_Number, record_array.Head_Aadhar,'',record_array.Head_Qualification,record_array.Head_Occupation],
-    'Spouse': ['','','','Spouse',record_array.Spouse_Name,'',formatDate(record_array.Spouse_DOB),'','SAME','SAME',record_array.Spouse_Aadhar, '',record_array.Spouse_Qualification, record_array.Spouse_Occupation]
+  var familyMemberRowObject = {
+    'Head': [familySerial,familyID,'ACTIVE','Head of Family',formDataArr.Head_Name,'',formatDate(formDataArr.Head_DOB),'',formDataArr.Present_Address,formDataArr.Contact_Number, formDataArr.Head_Aadhar,'',formDataArr.Head_Qualification,formDataArr.Head_Occupation],
+    'Spouse': ['','','','Spouse',formDataArr.Spouse_Name,'',formatDate(formDataArr.Spouse_DOB),'','SAME','SAME',formDataArr.Spouse_Aadhar, '',formDataArr.Spouse_Qualification, formDataArr.Spouse_Occupation]
   };
-  for(var i=1;i<=record_array.Number_of_Children; i++)
+  for(var i=1;i<=formDataArr.Number_of_Children; i++)
   {
     var childId = 'Child_'+i;
-    memberRowObject[childId] = ['','','','Child No. '+i,record_array[childId+'_Name'],'',formatDate(record_array[childId+'_DOB']),'','SAME','SAME',record_array[childId+'_Aadhar'], '',''];
+    familyMemberRowObject[childId] = ['','','','Child No. '+i,formDataArr[childId+'_Name'],'',formatDate(formDataArr[childId+'_DOB']),'','SAME','SAME',formDataArr[childId+'_Aadhar'], '',''];
   }
 
-  appendFamilyMemberRows( memberRowObject);
+  appendFamilyMemberRows( familyMemberRowObject);
 }
 
 function getFamilyID( newserialDigit)
 {
   var fullyear = new Date().getFullYear().toString();   //2023
   var currentyear = fullyear.substring(2);              //23
-  var savedyear = scriptProperties.getProperty('year');
+  var savedyear = scriptProperties.getProperty('savedYear');
   if(currentyear != savedyear)
   {
-    scriptProperties.setProperty('serialno', '00');
-    scriptProperties.setProperty('year', currentyear);
-    appendNewYearRow(sheet, fullyear);
+    scriptProperties.setProperty('familySerial', '00');
+    scriptProperties.setProperty('savedYear', currentyear);
+    appendNewYearRow(fullyear);
   }
-  var serial = ('0'+newserialDigit).slice(-2);
-  var familyID = scriptProperties.getProperty('familyIDPrefix')+currentyear+'/'+serial;
-  scriptProperties.setProperty('serialno', serial);
+  var newSerialStr = ('0'+newserialDigit).slice(-2);
+  var familyID = scriptProperties.getProperty('familyIDPrefix')+currentyear+'/'+newSerialStr;
+  scriptProperties.setProperty('familySerial', newSerialStr);
   return familyID;
 }
 
 function appendFamilyMemberRows( rowObj)
 {
-  colorGreenHeadRow(sheet);
-  sheet.appendRow(rowObj['Head']);
-  sheet.appendRow(rowObj['Spouse']);
-  var studentsheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('studentUrl')).getSheetByName(scriptProperties.getProperty('studentSheet'));
+  var familyHeadRow = colorGreenHeadRow();
+  familySheet.appendRow(rowObj['Head']);
+  familySheet.appendRow(rowObj['Spouse']);
   var studentSheetArr = [];
 
-  for(var i=1;i<=record_array.Number_of_Children; i++)
+  for(var i=1;i<=formDataArr.Number_of_Children; i++)
   {
-    var index = 'Child_'+i;
-    sheet.appendRow(rowObj[index]);
-    checkChildrenClass(rowObj, studentSheetArr, index);
-    studentsheet.appendRow(studentSheetArr[index]);
+    var childId = 'Child_'+i;
+    checkChildrenClass(rowObj, studentSheetArr, childId);
+    familySheet.appendRow(rowObj[childId]);
+    appendRowToStudentSheet(studentSheetArr, childId, familyHeadRow);
   }
 }
 
-function checkChildrenClass(rowObj, studentSheetArr, childindex)
+function appendRowToStudentSheet(studentSheetArr, childId, familyHeadRow)
 {
-  var serno = Number(childindex.slice(-1));
+  studentSheet.appendRow(studentSheetArr[childId]);
+  var newStudentRow = studentSheet.getLastRow();
+  var rollno = studentSheet.getRange('D'+newStudentRow).getValue().toString();
+  var hyperlink = '=HYPERLINK("https://docs.google.com/spreadsheets/d/1IBlZxsA1KHUCryYW0X0IWLpy8woD_F2i1RV5DXgXJm0/edit#gid=352158144&range=B'+familyHeadRow+'", "'+rollno+'")';
+  studentSheet.getRange('D'+newStudentRow).setValue(hyperlink);
+}
+
+function checkChildrenClass(rowObj, studentSheetArr, childId)
+{
+  var intChildId = Number(childId.slice(-1));
   var rollnoString = familyID+'-0';
-  //ToDo: Insert link for roll nos
-  if(isSNSStudent(record_array[childindex+'_Class']))
+  if(isSNSStudent(formDataArr[childId+'_Class']))
   {
-    rowObj[childindex].push('SNS Student');
-    studentSheetArr[childindex] = ['',record_array[childindex+'_Name'], '', rollnoString+(++serno), record_array[childindex+'_Class'], '', formatDate(record_array[childindex+'_joined_SNS_on'])];
+    rowObj[childId].push('SNS Student');
+    var lastRowSerial = Number(studentSheet.getRange('A'+studentSheet.getLastRow()).getValue().toString());
+    studentSheetArr[childId] = [lastRowSerial+1,formDataArr[childId+'_Name'], '', rollnoString+(intChildId), formDataArr[childId+'_Class'], '', formatDate(formDataArr[childId+'_joined_SNS_on'])];
   }
 }
 
@@ -125,15 +132,15 @@ function isSNSStudent(childclass)
 
 function appendNewYearRow( year)
 {
-  var lastrow = sheet.getLastRow()+1;
-  sheet.getRange(lastrow, 1, 1, 33) .setBackground('#ff04fc');
-  sheet.appendRow(['',year]);
+  var newrow = familySheet.getLastRow()+1;
+  familySheet.getRange(newrow, 1, 1, 33) .setBackground('#ff04fc');
+  familySheet.appendRow(['',year]);
 }
 
 function colorGreenHeadRow()
 {
-  var lastrow = sheet.getLastRow()+1;
-  sheet.getRange(lastrow, 1, 1, 33) .setBackground('#00ff00');
+  var newrow = familySheet.getLastRow()+1;
+  familySheet.getRange(newrow, 1, 1, 33) .setBackground('#00ff00');
 }
 
 function formatDate(dob)
