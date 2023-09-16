@@ -74,8 +74,8 @@ function newFamilyEnrollment(itemResponses)
 
 function getFamilyID( newserialDigit)
 {
-  var fullyear = new Date().getFullYear().toString();
-  var currentyear = fullyear.substring(2);
+  var fullyear = new Date().getFullYear().toString();   //2023
+  var currentyear = fullyear.substring(2);              //23
   var savedyear = scriptProperties.getProperty('year');
   if(currentyear != savedyear)
   {
@@ -97,27 +97,24 @@ function appendFamilyMemberRows( rowObj)
   var studentsheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('studentUrl')).getSheetByName(scriptProperties.getProperty('studentSheet'));
   var studentSheetArr = [];
 
-  for(var i=0;i<record_array.Number_of_Children; i++)
+  for(var i=1;i<=record_array.Number_of_Children; i++)
   {
-    var index = 'Child_'+(i+1);
+    var index = 'Child_'+i;
     sheet.appendRow(rowObj[index]);
     checkChildrenClass(rowObj, studentSheetArr, index);
-    studentsheet.appendRow(studentSheetArr[i]);
+    studentsheet.appendRow(studentSheetArr[index]);
   }
 }
 
 function checkChildrenClass(rowObj, studentSheetArr, childindex)
 {
-  var serno = 0;
+  var serno = Number(childindex.slice(-1));
   var rollnoString = familyID+'-0';
-  var childclass = childindex+'_Class';
-  var childname = childindex+'_Name';
-  var childjoinedon = childindex+'_joined_SNS_on';
   //ToDo: Insert link for roll nos
-  if(isSNSStudent(record_array[childindex+'_'+childclass]))
+  if(isSNSStudent(record_array[childindex+'_Class']))
   {
     rowObj[childindex].push('SNS Student');
-    studentSheetArr.push(['',record_array[childname], '', rollnoString+(++serno), record_array[childclass], '', formatDate(record_array[childjoinedon])]);
+    studentSheetArr[childindex] = ['',record_array[childindex+'_Name'], '', rollnoString+(++serno), record_array[childindex+'_Class'], '', formatDate(record_array[childindex+'_joined_SNS_on'])];
   }
 }
 
