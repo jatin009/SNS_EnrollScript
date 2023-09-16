@@ -9,8 +9,9 @@
 
 formDataArr = {};
 const scriptProperties = PropertiesService.getScriptProperties();
-var familySheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('familyUrl')).getSheetByName(scriptProperties.getProperty('familySheet'));
-var studentSheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('studentUrl')).getSheetByName(scriptProperties.getProperty('studentSheet'));
+var ss = SpreadsheetApp.openByUrl(scriptProperties.getProperty('familyUrl'));
+var familySheet = ss.getSheetByName(scriptProperties.getProperty('familySheet'));
+var studentSheet = ss.getSheetByName(scriptProperties.getProperty('studentSheet'));
 var familySerial = Number(scriptProperties.getProperty('familySerial'));
 var familyID = '';
 
@@ -109,7 +110,7 @@ function appendRowToStudentSheet(studentSheetArr, childId, familyHeadRow)
   studentSheet.appendRow(studentSheetArr[childId]);
   var newStudentRow = studentSheet.getLastRow();
   var rollno = studentSheet.getRange('D'+newStudentRow).getValue().toString();
-  var hyperlink = '=HYPERLINK("https://docs.google.com/spreadsheets/d/1IBlZxsA1KHUCryYW0X0IWLpy8woD_F2i1RV5DXgXJm0/edit#gid=352158144&range=B'+familyHeadRow+'", "'+rollno+'")';
+  var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty('familySheet')+'!B'+familyHeadRow+'", "'+rollno+'")';
   studentSheet.getRange('D'+newStudentRow).setValue(hyperlink);
 }
 
