@@ -12,6 +12,7 @@ const scriptProperties = PropertiesService.getScriptProperties();
 var ss= SpreadsheetApp.openByUrl(scriptProperties.getProperty('url'));
 var sheet = ss.getSheetByName(scriptProperties.getProperty('sheetname'));
 var serialDigit = Number(scriptProperties.getProperty('serialno'));
+var familyID;
 
 function onFormSubmit(event) 
 {
@@ -36,7 +37,7 @@ function onFormSubmit(event)
 
 function studentLeaving(itemResponses)
 {
-  for(var j=1; j<itemResponses.length; j++)
+ for(var j=1; j<itemResponses.length; j++)
   {
     var itemResponse = itemResponses[j];
     var key = itemResponse.getItem().getTitle();
@@ -56,7 +57,7 @@ function newFamilyEnrollment(itemResponses)
   }
 
   var newserialDigit = serialDigit + 1;
-  var familyID = getFamilyID(newserialDigit);
+  familyID = getFamilyID(newserialDigit);
 
   var memberRowObject = {
     'Head': [serialDigit,familyID,'ACTIVE','Head of Family',record_array.Head_Name,'',formatDate(record_array.Head_DOB),'',record_array.Present_Address,record_array.Contact_Number, record_array.Head_Aadhar,'',record_array.Head_Qualification,record_array.Head_Occupation],
@@ -90,37 +91,43 @@ function getFamilyID( newserialDigit)
 function appendFamilyMemberRows( rowObj)
 {
   colorGreenHeadRow(sheet);
-  checkChildrenClass(rowObj);
+  var studentSheetArr = [];
+  checkChildrenClass(rowObj, studentSheetArr);
   sheet.appendRow(rowObj['Head']);
   sheet.appendRow(rowObj['Spouse']);
-  for(var i=1;i<=record_array.Number_of_Children; i++)
+  var studentsheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty('studentUrl')).getSheetByName(scriptProperties.getProperty('studentSheet'));
+
+  for(var i=0;i<record_array.Number_of_Children; i++)
   {
-    var index = 'Child '+i;
+    var index = 'Child '+(i+1);
     sheet.appendRow(rowObj[index]);
+    studentsheet.appendRow(studentSheetArr[i]);
   }
 }
 
-function checkChildrenClass(rowObj)
+function checkChildrenClass(rowObj, studentSheetArr)
 {
+  var serno = 0;
+  var rollnoString = familyID+'-0';
   if(record_array.Child_1_Class != 'Not a SNS student' && record_array.Child_1_Class != 'Adult')
   {
-    var child_class = 'SNS Student ('+record_array.Child_1_Class+')';
-    rowObj['Child 1'].push(child_class);
+    rowObj['Child 1'].push('SNS Student');
+    studentSheetArr.push(['',record_array.Child_1_Name, '', rollnoString+(++serno), record_array.Child_1_Class, '', formatDate(record_array.Child_1_joined_SNS_on)]);
   }
   if(record_array.Child_2_Class != 'Not a SNS student' && record_array.Child_2_Class != 'Adult')
   {
-    var child_class = 'SNS Student ('+record_array.Child_2_Class+')';
-    rowObj['Child 2'].push(child_class);
+    rowObj['Child 2'].push('SNS Student');
+    studentSheetArr.push(['',record_array.Child_2_Name, '', rollnoString+(++serno), record_array.Child_2_Class, '', formatDate(record_array.Child_2_joined_SNS_on)]);
   }
   if(record_array.Child_3_Class != 'Not a SNS student' && record_array.Child_3_Class != 'Adult')
   {
-    var child_class = 'SNS Student ('+record_array.Child_3_Class+')';
-    rowObj['Child 3'].push(child_class);
+    rowObj['Child 3'].push('SNS Student');
+    studentSheetArr.push(['',record_array.Child_3_Name, '', rollnoString+(++serno), record_array.Child_3_Class, '', formatDate(record_array.Child_3_joined_SNS_on)]);
   }
   if(record_array.Child_4_Class != 'Not a SNS student' && record_array.Child_4_Class != 'Adult')
   {
-    var child_class = 'SNS Student ('+record_array.Child_4_Class+')';
-    rowObj['Child 4'].push(child_class);
+    rowObj['Child 4'].push('SNS Student');
+    studentSheetArr.push(['',record_array.Child_4_Name, '', rollnoString+(++serno), record_array.Child_4_Class, '', formatDate(record_array.Child_4_joined_SNS_on)]);
   }
 }
 
@@ -139,5 +146,5 @@ function colorGreenHeadRow()
 
 function formatDate(dob)
 {
-  return Utilities.formatDate(new Date(dob), "GMT+1", "dd/MM/yyyy");
+  return Utilities.formatDate(new Date(dob), "GMT+1", "dd-MMM-yyyy");
 }
