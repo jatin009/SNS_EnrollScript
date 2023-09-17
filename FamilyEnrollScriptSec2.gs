@@ -102,16 +102,16 @@ function appendFamilyMemberRows( rowObj)
     var childId = 'Child_'+i;
     checkChildrenClass(rowObj, studentSheetArr, childId);
     familySheet.appendRow(rowObj[childId]);
-    appendRowToStudentSheet(studentSheetArr, childId, familyHeadRow);
+    studentSheet.appendRow(studentSheetArr[childId]);
+    setHyperlinkToRollNo(familyHeadRow);
   }
 }
 
-function appendRowToStudentSheet(studentSheetArr, childId, familyHeadRow)
+function setHyperlinkToRollNo(familyHeadRow)
 {
-  studentSheet.appendRow(studentSheetArr[childId]);
   var newStudentRow = studentSheet.getLastRow();
   var rollno = studentSheet.getRange('D'+newStudentRow).getValue().toString();
-  var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty('familySheet')+'!B'+familyHeadRow+'", "'+rollno+'")';
+  var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty('familyUrl')+'&range=B'+familyHeadRow+'", "'+rollno+'")';
   studentSheet.getRange('D'+newStudentRow).setValue(hyperlink);
 }
 
@@ -123,7 +123,7 @@ function checkChildrenClass(rowObj, studentSheetArr, childId)
   {
     rowObj[childId].push('SNS Student');
     var lastRowSerial = Number(studentSheet.getRange('A'+studentSheet.getLastRow()).getValue().toString());
-    studentSheetArr[childId] = [lastRowSerial+1,formDataArr[childId+'_Name'], '', rollnoString+(intChildId), formDataArr[childId+'_Class'], '', formatDate(formDataArr[childId+'_joined_SNS_on'])];
+    studentSheetArr[childId] = [lastRowSerial+1,formDataArr[childId+'_Name'],formDataArr[childId+'_Gender'], rollnoString+(intChildId), formDataArr[childId+'_Class'], '', formatDate(formDataArr[childId+'_joined_SNS_on'])];
   }
 }
 
@@ -143,6 +143,7 @@ function colorGreenHeadRow()
 {
   var newrow = familySheet.getLastRow()+1;
   familySheet.getRange(newrow, 1, 1, 33) .setBackground('#00ff00');
+  return newrow;
 }
 
 function formatDate(dob)
