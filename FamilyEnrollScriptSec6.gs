@@ -57,10 +57,11 @@ function newFamilyEnrollment(itemResponses)
     formDataArr[underscoredKey] = itemResponse.getResponse();
   }
 
-  familyID = getFamilyID(familySerial + 1);
+  var nextFamilySerial = familySerial + 1;
+  familyID = getFamilyID(nextFamilySerial);
 
   var familyMemberRowObject = {
-    'Head': [familySerial,familyID,'ACTIVE','Head of Family',formDataArr.Head_Name,'',formatDate(formDataArr.Head_DOB),'',formDataArr.Present_Address,formDataArr.Contact_Number, formDataArr.Head_Aadhar,'',formDataArr.Head_Qualification,formDataArr.Head_Occupation],
+    'Head': [nextFamilySerial,familyID,'ACTIVE','Head of Family',formDataArr.Head_Name,'',formatDate(formDataArr.Head_DOB),'',formDataArr.Present_Address,formDataArr.Contact_Number, formDataArr.Head_Aadhar,'',formDataArr.Head_Qualification,formDataArr.Head_Occupation],
     'Spouse': ['','','','Spouse',formDataArr.Spouse_Name,'',formatDate(formDataArr.Spouse_DOB),'','SAME','SAME',formDataArr.Spouse_Aadhar, '',formDataArr.Spouse_Qualification, formDataArr.Spouse_Occupation]
   };
   for(var i=1;i<=formDataArr.Number_of_Children; i++)
