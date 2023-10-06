@@ -9,7 +9,7 @@
 
 formDataArr = {};
 const scriptProperties = PropertiesService.getScriptProperties();
-var familySheet, studentSheet, familySerial, familyID, familyUrlVariable, familySerialVariable, familyIDPrefixVariable;
+var familySheet, studentSheet, familySerial, familyID, familyUrlVariable, familySerialVariable, familyIDPrefixVariable, studentUrlVariable;
 
 function onFormSubmit(event) 
 {
@@ -44,6 +44,7 @@ function updateGlobalVariables(centerPrefixScriptProp)
   familyUrlVariable = centerPrefixScriptProp+'familyUrl';
   familySerialVariable = centerPrefixScriptProp+'familySerial';
   familyIDPrefixVariable = centerPrefixScriptProp+'familyIDPrefix';
+  studentUrlVariable = centerPrefixScriptProp+'StudentUrl';
   var spreadsheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty(familyUrlVariable));
   familySheet = spreadsheet.getSheetByName(scriptProperties.getProperty('familySheet'));
   studentSheet = spreadsheet.getSheetByName(scriptProperties.getProperty('studentSheet'));
@@ -131,19 +132,29 @@ function appendFamilyMemberRows( rowObj)
   for(var i=1;i<=formDataArr.Number_of_Children; i++)
   {
     var childId = 'Child_'+i;
-    checkChildrenClass(rowObj, studentSheetArr, childId);
-    familySheet.appendRow(rowObj[childId]);
-    studentSheet.appendRow(studentSheetArr[childId]);
-    setHyperlinkToRollNo(familyHeadRow);
+    var isSNSStudent = checkChildrenClass(rowObj, studentSheetArr, childId);
+    familySheet.appendRow(rowObj[childId]); //set yellow color to student name and set hyperlink
+    if(isSNSStudent == true)
+    {
+      colorSNSStudentRowYellowInFamilySheet();
+      studentSheet.appendRow(studentSheetArr[childId]);
+      setHyperlinkToRollNo(familyHeadRow);
+    }
   }
+}
+
+function colorSNSStudentRowYellowInFamilySheet()
+{
+  var childRow = familySheet.getLastRow();
+  familySheet.getRange(childRow, 4).setBackground("#ffff00"); // yellow color
 }
 
 function setHyperlinkToRollNo(familyHeadRow)
 {
   var newStudentRow = studentSheet.getLastRow();
-  var rollno = studentSheet.getRange('D'+newStudentRow).getValue().toString();
+  var rollno = studentSheet.getRange('E'+newStudentRow).getValue().toString();
   var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty(familyUrlVariable)+'&range=B'+familyHeadRow+'", "'+rollno+'")';
-  studentSheet.getRange('D'+newStudentRow).setValue(hyperlink);
+  studentSheet.getRange('E'+newStudentRow).setValue(hyperlink);
 }
 
 function checkChildrenClass(rowObj, studentSheetArr, childId)
@@ -152,10 +163,19 @@ function checkChildrenClass(rowObj, studentSheetArr, childId)
   var rollnoString = familyID+'-0';
   if(isSNSStudent(formDataArr[childId+'_Class']))
   {
-    rowObj[childId].push('SNS Student');
+    rowObj[childId].push(getStudentRowHyperlink());
     var lastRowSerial = Number(studentSheet.getRange('A'+studentSheet.getLastRow()).getValue().toString());
-    studentSheetArr[childId] = [lastRowSerial+1,formDataArr[childId+'_Name'],formDataArr[childId+'_Gender'], rollnoString+(intChildId), formDataArr[childId+'_Class'], '', formatDate(formDataArr[childId+'_joined_SNS_on'])];
+    studentSheetArr[childId] = [lastRowSerial+1,formDataArr[childId+'_Name'],formDataArr[childId+'_Gender'],formatDate(formDataArr[childId+'_DOB']), rollnoString+(intChildId), formDataArr[childId+'_Class'], '',formDataArr.Contact_Number, formatDate(formDataArr[childId+'_joined_SNS_on'])];
+    return true;
   }
+  return false;
+}
+
+function getStudentRowHyperlink()
+{
+    var newStudentRow = studentSheet.getLastRow()+1;
+    var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty(studentUrlVariable)+'&range=B'+newStudentRow+'", "SNS Student")';
+    return hyperlink;
 }
 
 function isSNSStudent(childclass)
@@ -173,7 +193,7 @@ function appendNewYearRow( year)
 function colorGreenHeadRow()
 {
   var newrow = familySheet.getLastRow()+1;
-  familySheet.getRange(newrow, 1, 1, 33) .setBackground('#00ff00');
+  familySheet.getRange(newrow, 1, 1, 33) .setBackground('#00ff00'); // green color
   return newrow;
 }
 
