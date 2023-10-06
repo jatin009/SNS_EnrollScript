@@ -9,11 +9,7 @@
 
 formDataArr = {};
 const scriptProperties = PropertiesService.getScriptProperties();
-var ss = SpreadsheetApp.openByUrl(scriptProperties.getProperty('familyUrl'));
-var familySheet = ss.getSheetByName(scriptProperties.getProperty('familySheet'));
-var studentSheet = ss.getSheetByName(scriptProperties.getProperty('studentSheet'));
-var familySerial = Number(scriptProperties.getProperty('familySerial'));
-var familyID = '';
+var familySheet, studentSheet, familySerial, familyID, familyUrlVariable, familySerialVariable, familyIDPrefixVariable;
 
 function onFormSubmit(event) 
 {
@@ -25,20 +21,55 @@ function onFormSubmit(event)
   var formResponse = formResponses[formCount - 1];
   var itemResponses = formResponse.getItemResponses();
 
-  var purpose = itemResponses[0];
-  if(purpose.getResponse() == "Student leaving")
+  var centerSelection = itemResponses[0].getResponse();
+  var centerPrefixScriptProp = getPrefixForScriptProperties(centerSelection);
+  if(centerPrefixScriptProp != null)
   {
-    studentLeaving(itemResponses);
-  }
-  else
-  {
-    newFamilyEnrollment(itemResponses);
+    updateGlobalVariables(centerPrefixScriptProp);
+
+    var purpose = itemResponses[1].getResponse();
+    if(purpose == "Student leaving")
+    {
+      studentLeaving(itemResponses);
+    }
+    else
+    {
+      newFamilyEnrollment(itemResponses);
+    }
   }
 }
 
-function studentLeaving(itemResponses)
+function updateGlobalVariables(centerPrefixScriptProp)
 {
- for(var j=1; j<itemResponses.length; j++)
+  familyUrlVariable = centerPrefixScriptProp+'familyUrl';
+  familySerialVariable = centerPrefixScriptProp+'familySerial';
+  familyIDPrefixVariable = centerPrefixScriptProp+'familyIDPrefix';
+  var spreadsheet = SpreadsheetApp.openByUrl(scriptProperties.getProperty(familyUrlVariable));
+  familySheet = spreadsheet.getSheetByName(scriptProperties.getProperty('familySheet'));
+  studentSheet = spreadsheet.getSheetByName(scriptProperties.getProperty('studentSheet'));
+  familySerial = Number(scriptProperties.getProperty(familySerialVariable));
+}
+
+function getPrefixForScriptProperties(centerCode)
+{
+  if(centerCode == "Sector 2")
+  {
+    return 'sec2';
+  }
+  else if(centerCode == "Sector 6")
+  {
+    return 'sec6';
+  }
+  else if(centerCode == "Sector 19")
+  {
+    return 'sec19';
+  }
+  else return null;
+}
+
+function studentLeaving(itemResponses)  //ToDo
+{
+ for(var j=2; j<itemResponses.length; j++)
   {
     var itemResponse = itemResponses[j];
     var key = itemResponse.getItem().getTitle();
@@ -49,7 +80,7 @@ function studentLeaving(itemResponses)
 
 function newFamilyEnrollment(itemResponses)
 {
-  for(var j=1; j<itemResponses.length; j++)
+  for(var j=2; j<itemResponses.length; j++)
   {
     var itemResponse = itemResponses[j];
     var key = itemResponse.getItem().getTitle();
@@ -61,13 +92,13 @@ function newFamilyEnrollment(itemResponses)
   familyID = getFamilyID(nextFamilySerial);
 
   var familyMemberRowObject = {
-    'Head': [nextFamilySerial,familyID,'ACTIVE','Head of Family',formDataArr.Head_Name,formatDate(formDataArr.Head_DOB),'','',formDataArr.Present_Address,formDataArr.Contact_Number, formDataArr.Head_Aadhar,'',formDataArr.Head_Qualification,formDataArr.Head_Occupation],
-    'Spouse': ['','','','Spouse',formDataArr.Spouse_Name,formatDate(formDataArr.Spouse_DOB),'','','SAME','SAME',formDataArr.Spouse_Aadhar, '',formDataArr.Spouse_Qualification, formDataArr.Spouse_Occupation]
+    'Head': ['',familyID,'Head of Family',formDataArr.Head_Name,formDataArr.Head_Gender,formatDate(formDataArr.Head_DOB),formDataArr.Present_Address,formDataArr.Contact_Number, formDataArr.Head_Aadhar,formDataArr.Head_Qualification,formDataArr.Head_Occupation],
+    'Spouse': ['','','Spouse',formDataArr.Spouse_Name,formDataArr.Spouse_Gender,formatDate(formDataArr.Spouse_DOB),'SAME','SAME',formDataArr.Spouse_Aadhar,formDataArr.Spouse_Qualification, formDataArr.Spouse_Occupation]
   };
   for(var i=1;i<=formDataArr.Number_of_Children; i++)
   {
     var childId = 'Child_'+i;
-    familyMemberRowObject[childId] = ['','','','Child No. '+i,formDataArr[childId+'_Name'],formatDate(formDataArr[childId+'_DOB']),'','','SAME','SAME',formDataArr[childId+'_Aadhar'], '',''];
+    familyMemberRowObject[childId] = ['','','Child No. '+i,formDataArr[childId+'_Name'],formDataArr[childId+'_Gender'],formatDate(formDataArr[childId+'_DOB']),'SAME','SAME',formDataArr[childId+'_Aadhar'],''];
   }
 
   appendFamilyMemberRows( familyMemberRowObject);
@@ -80,13 +111,13 @@ function getFamilyID( newserialDigit)
   var savedyear = scriptProperties.getProperty('savedYear');
   if(currentyear != savedyear)
   {
-    scriptProperties.setProperty('familySerial', '00');
+    scriptProperties.setProperty(familySerialVariable, '00');
     scriptProperties.setProperty('savedYear', currentyear);
     appendNewYearRow(fullyear);
   }
   var newSerialStr = ('0'+newserialDigit).slice(-2);
-  var familyID = scriptProperties.getProperty('familyIDPrefix')+currentyear+'/'+newSerialStr;
-  scriptProperties.setProperty('familySerial', newSerialStr);
+  var familyID = scriptProperties.getProperty(familyIDPrefixVariable)+currentyear+'/'+newSerialStr;
+  scriptProperties.setProperty(familySerialVariable, newSerialStr);
   return familyID;
 }
 
@@ -111,7 +142,7 @@ function setHyperlinkToRollNo(familyHeadRow)
 {
   var newStudentRow = studentSheet.getLastRow();
   var rollno = studentSheet.getRange('D'+newStudentRow).getValue().toString();
-  var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty('familyUrl')+'&range=B'+familyHeadRow+'", "'+rollno+'")';
+  var hyperlink = '=HYPERLINK("'+scriptProperties.getProperty(familyUrlVariable)+'&range=B'+familyHeadRow+'", "'+rollno+'")';
   studentSheet.getRange('D'+newStudentRow).setValue(hyperlink);
 }
 
